@@ -60,6 +60,37 @@ public class App { // プログラムの本体です。
                 exchange.sendResponseHeaders(303, -1); // トップページへ移動するよう伝えます。
                 exchange.close(); // 今回の通信を閉じます。
                 return; // 追加の処理を終えます。
+            } else if (path.equals("/done") && method.equals("GET")) { // ★追加 完了のアクセスかを調べます。
+                String query = exchange.getRequestURI().getQuery(); // ★追加 URLのidを含む部分を取り出します。
+                if (query != null && query.startsWith("id=") && query.length() > 3) { // ★追加 idが書かれているかを調べます。
+                    try { // ★追加 数字に変えられるかを試します。
+                        int id = Integer.parseInt(query.substring(3)); // ★追加 idを数字に変えます。
+                        for (Todo todo : todos) { // ★追加 Todoを1件ずつ調べます。
+                            if (todo.getId() == id) { // ★追加 idが一致するかを調べます。
+                                todo.setDone(true); // ★追加 一致したTodoを完了にします。
+                                break; // ★追加 ここで探すのを終えます。
+                            } // ★追加
+                        } // ★追加
+                    } catch (NumberFormatException e) { // ★追加 数字でないidは何も変えません。
+                    } // ★追加
+                } // ★追加
+                exchange.getResponseHeaders().set("Location", "/"); // ★追加 戻り先をトップページにします。
+                exchange.sendResponseHeaders(303, -1); // ★追加 トップページへ移動するよう伝えます。
+                exchange.close(); // ★追加 今回の通信を閉じます。
+                return; // ★追加 完了の処理を終えます。
+            } else if (path.equals("/delete") && method.equals("GET")) { // ★追加 削除のアクセスかを調べます。
+                String query = exchange.getRequestURI().getQuery(); // ★追加 URLのidを含む部分を取り出します。
+                if (query != null && query.startsWith("id=") && query.length() > 3) { // ★追加 idが書かれているかを調べます。
+                    try { // ★追加 数字に変えられるかを試します。
+                        int id = Integer.parseInt(query.substring(3)); // ★追加 idを数字に変えます。
+                        todos.removeIf(todo -> todo.getId() == id); // ★追加 一致したTodoを削除します。
+                    } catch (NumberFormatException e) { // ★追加 数字でないidは何も変えません。
+                    } // ★追加
+                } // ★追加
+                exchange.getResponseHeaders().set("Location", "/"); // ★追加 戻り先をトップページにします。
+                exchange.sendResponseHeaders(303, -1); // ★追加 トップページへ移動するよう伝えます。
+                exchange.close(); // ★追加 今回の通信を閉じます。
+                return; // ★追加 削除の処理を終えます。
             } else if (path.equals("/")) { // トップページかを調べます。
                 String html = "<form method='post' action='/add'><input name='todo'><button>追加</button></form><ul>"; // 入力フォームと一覧の始まりを用意します。
                 for (Todo todo : todos) { // ★変更 Todoを1件ずつ取り出します。
@@ -67,7 +98,7 @@ public class App { // プログラムの本体です。
                     if (todo.isDone()) { // ★変更 完了しているかを調べます。
                         mark = " ✔"; // ★変更 完了したTodoに印を付けます。
                     } // ★変更
-                    html += "<li>" + todo.getTitle() + mark + "</li>"; // ★変更 一覧に1件を足します。
+                    html += "<li>" + todo.getTitle() + mark + " <a href='/done?id=" + todo.getId() + "'>完了</a> <a href='/delete?id=" + todo.getId() + "'>削除</a></li>"; // ★追加 各Todoの横にid付きのリンクを足します。
                 }
                 html += "</ul>"; // 一覧を閉じます。
                 message = html; // 作ったHTMLを返す文字にします。
