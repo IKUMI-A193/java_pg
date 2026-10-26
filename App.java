@@ -5,11 +5,44 @@ import java.nio.charset.StandardCharsets; // UTF-8を指定する機能を読み
 import java.util.ArrayList; // Todoを入れるリストの機能を読み込みます。
 import java.util.List; // リストの型を使えるようにします。
 
+class Todo { // ★変更 Todo1件分のデータです。
+    private final int id; // ★変更 何番かを保存します。
+    private final String title; // ★変更 やることを保存します。
+    private boolean done; // ★変更 終わったかを保存します。
+
+    Todo(int id, String title) { // ★変更 新しいTodoを作ります。
+        this.id = id; // ★変更 番号を入れます。
+        this.title = title; // ★変更 やることを入れます。
+        this.done = false; // ★変更 最初は未完了にします。
+    } // ★変更
+
+    int getId() { // ★変更 番号を読み出します。
+        return id; // ★変更
+    } // ★変更
+
+    String getTitle() { // ★変更 やることを読み出します。
+        return title; // ★変更
+    } // ★変更
+
+    boolean isDone() { // ★変更 終わったかを読み出します。
+        return done; // ★変更
+    } // ★変更
+
+    void setDone(boolean done) { // ★変更 終わったかを書き換えます。
+        this.done = done; // ★変更
+    } // ★変更
+} // ★変更
+
 public class App { // プログラムの本体です。
+    static List<Todo> todos = new ArrayList<>(); // ★変更 Todoを保存します。
+    static int nextId = 1; // ★変更 次に振る番号です。
+
     public static void main(String[] args) throws Exception { // ここから実行します。
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0); // 8080番で待つサーバーを用意します。
-        // Todoを保存する空のリストを一度だけ作ります。
-        List<String> todos = new ArrayList<>();
+        todos.add(new Todo(nextId++, "牛乳を買う")); // ★変更 1件目のサンプルを入れます。
+        Todo egg = new Todo(nextId++, "卵を買う"); // ★変更 2件目のサンプルを作ります。
+        egg.setDone(true); // ★変更 2件目を完了にします。
+        todos.add(egg); // ★変更 2件目を入れます。
         server.createContext("/", exchange -> { // トップページへのアクセスを処理します。
             String path = exchange.getRequestURI().getPath(); // アクセスされたパスを取り出します。
             String method = exchange.getRequestMethod(); // GETかPOSTかを取り出します。
@@ -18,9 +51,10 @@ public class App { // プログラムの本体です。
             if (path.equals("/add") && method.equals("POST")) { // Todoの追加かを調べます。
                 String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8); // 送られた内容を読み取ります。
                 String value = body.substring(5); // 先頭の todo= を除きます。
-                String todo = URLDecoder.decode(value, StandardCharsets.UTF_8); // 日本語を元に戻します。
-                if (!todo.isEmpty()) { // 空の入力は追加しません。
-                    todos.add(todo); // Todoを一覧に追加します。
+                String title = URLDecoder.decode(value, StandardCharsets.UTF_8); // ★変更 日本語を元に戻します。
+                if (!title.isEmpty()) { // ★変更 空の入力は追加しません。
+                    todos.add(new Todo(nextId, title)); // ★変更 Todoを一覧に追加します。
+                    nextId++; // ★変更 次の番号に進めます。
                 }
                 exchange.getResponseHeaders().set("Location", "/"); // 戻り先をトップページにします。
                 exchange.sendResponseHeaders(303, -1); // トップページへ移動するよう伝えます。
@@ -28,20 +62,16 @@ public class App { // プログラムの本体です。
                 return; // 追加の処理を終えます。
             } else if (path.equals("/")) { // トップページかを調べます。
                 String html = "<form method='post' action='/add'><input name='todo'><button>追加</button></form><ul>"; // 入力フォームと一覧の始まりを用意します。
-                for (String todo : todos) { // Todoを1件ずつ取り出します。
-                    html += "<li>" + todo + "</li>"; // 一覧に1件を足します。
+                for (Todo todo : todos) { // ★変更 Todoを1件ずつ取り出します。
+                    String mark = ""; // ★変更 未完了なら印を付けません。
+                    if (todo.isDone()) { // ★変更 完了しているかを調べます。
+                        mark = " ✔"; // ★変更 完了したTodoに印を付けます。
+                    } // ★変更
+                    html += "<li>" + todo.getTitle() + mark + "</li>"; // ★変更 一覧に1件を足します。
                 }
                 html += "</ul>"; // 一覧を閉じます。
                 message = html; // 作ったHTMLを返す文字にします。
                 exchange.getResponseHeaders().set("Content-Type", "text/html; charset=UTF-8"); // HTMLとして返すことを伝えます。
-            } else if (path.equals("/hello")) { // パスが /hello か比べます。
-                String query = exchange.getRequestURI().getRawQuery(); // URLの ? より後ろを取り出します。
-                String name = java.net.URLDecoder.decode(query.substring(5), "UTF-8"); // name= の後ろを切り出します。
-                message = "こんにちは、" + name + "さん！"; // 名前をつないで返す文字を作ります。
-            } else if (path.equals("/bye")) { // パスが /bye か比べます。
-                message = "さようなら！";
-            } else if (path.equals("/menu")) { // パスが /menu か比べます。
-                message = "おいしい！";
             } else {
                 message = "ページが見つかりません";
             }
